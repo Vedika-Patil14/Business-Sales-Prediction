@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Business Sales Prediction</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body class="landing-body">
+  <div class="landing-overlay"></div>
+
+  <div class="landing-container">
+    <div class="landing-badge">Smart Forecasting Dashboard</div>
+
+    <!-- Title -->
+    <h1 class="landing-title">Business Sales Prediction</h1>
+
+    <!-- ❌ Removed subtitle -->
+
+    <div class="landing-features">
+
+      <div class="feature-card">
+        <h3>Fast Analysis</h3>
+        <p>Instant insights from your monthly sales data.</p>
+      </div>
+
+      <div class="feature-card">
+        <h3>Smart Model Selection</h3>
+        <p>Uses Linear Regression & Moving Average for prediction.</p>
+      </div>
+
+      <div class="feature-card">
+        <h3>Graph Visualization</h3>
+        <p>Visualize trends and future predictions clearly.</p>
+      </div>
+
+    </div>
+
+    <a href="{{ url_for('predict_page') }}" class="start-link">Get Started</a>
+  </div>
+</body>
+</html>
