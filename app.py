@@ -13,13 +13,15 @@ def calculate_sd(data, mean):
     return math.sqrt(variance)
 
 
-def moving_average(data, k=3):
-    k = min(k, len(data))
-    recent = data[-k:]
-    return sum(recent) / len(recent)
+def calculate_cv(data):
+    mean = calculate_mean(data)
+    sd = calculate_sd(data, mean)
+    if mean == 0:
+        return 0.0
+    return sd / mean
 
 
-def linear_regression_prediction(data):
+def calculate_linear_regression(data):
     n = len(data)
     x = list(range(1, n + 1))
 
@@ -28,17 +30,56 @@ def linear_regression_prediction(data):
     sum_xy = sum(x[i] * data[i] for i in range(n))
     sum_x2 = sum(i * i for i in x)
 
-    denominator = (n * sum_x2 - sum_x ** 2)
+    denominator = n * sum_x2 - (sum_x ** 2)
 
     if denominator == 0:
-        return data[-1]
-
-    m = (n * sum_xy - sum_x * sum_y) / denominator
-    c = (sum_y - m * sum_x) / n
+        slope = 0
+        intercept = data[-1]
+    else:
+        slope = (n * sum_xy - sum_x * sum_y) / denominator
+        intercept = (sum_y - slope * sum_x) / n
 
     next_x = n + 1
-    prediction = m * next_x + c
-    return prediction
+    prediction = slope * next_x + intercept
+
+    mean_y = sum_y / n
+    predicted_y = [slope * xi + intercept for xi in x]
+    ss_total = sum((yi - mean_y) ** 2 for yi in data)
+    ss_res = sum((data[i] - predicted_y[i]) ** 2 for i in range(n))
+
+    if ss_total == 0:
+        r_squared = 1.0
+    else:
+        r_squared = 1 - (ss_res / ss_total)
+
+    return round(slope, 2), round(intercept, 2), round(prediction, 2), round(r_squared, 4)
+
+
+def moving_average(data, k=3):
+    k = min(k, len(data))
+    return round(sum(data[-k:]) / k, 2)
+
+
+def detect_trend(slope):
+    if slope > 0:
+        return "Increasing"
+    elif slope < 0:
+        return "Decreasing"
+    return "Stable"
+
+
+def select_model(cv):
+    if cv > 1:
+        return "Moving Average", "CV > 1, so Moving Average is selected."
+    else:
+        return "Linear Regression", "CV < 1, so Linear Regression is selected."
+
+
+def confidence_interval(data, prediction, z=1.645):
+    mean = calculate_mean(data)
+    sd = calculate_sd(data, mean)
+    margin = z * sd
+    return round(prediction - margin, 2), round(prediction + margin, 2)
 
 
 @app.route("/")
@@ -54,44 +95,58 @@ def predict_page():
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
-        data = request.get_json()
+        payload = request.get_json()
+        if not payload or "sales" not in payload:
+            return jsonify({"error": "Sales data is required."}), 400
 
-        if not data or "sales" not in data:
-            return jsonify({"error": "No sales data received"}), 400
+        sales = payload["sales"]
 
-        sales = data.get("sales", [])
+        if not isinstance(sales, list):
+            return jsonify({"error": "Sales must be a list."}), 400
 
-        if not isinstance(sales, list) or len(sales) < 3:
-            return jsonify({"error": "Enter at least 3 sales values"}), 400
+        if len(sales) < 3:
+            return jsonify({"error": "Please enter at least 3 sales values."}), 400
 
-        sales = [float(x) for x in sales]
+        clean_sales = []
+        for value in sales:
+            try:
+                num = float(value)
+                if num < 0:
+                    return jsonify({"error": "Sales values cannot be negative."}), 400
+                clean_sales.append(num)
+            except:
+                return jsonify({"error": "All sales values must be numeric."}), 400
 
-        mean = calculate_mean(sales)
-        sd = calculate_sd(sales, mean)
-        cv = sd / mean if mean != 0 else 0
+        mean = round(calculate_mean(clean_sales), 2)
+        sd = round(calculate_sd(clean_sales, mean), 2)
+        cv = round(calculate_cv(clean_sales), 4)
 
-        lr_prediction = linear_regression_prediction(sales)
-        ma_prediction = moving_average(sales, 3)
+        slope, intercept, lr_prediction, r_squared = calculate_linear_regression(clean_sales)
+        ma_prediction = moving_average(clean_sales, 3)
 
-        if cv < 0.1:
-            model = "Linear Regression"
-            final_prediction = lr_prediction
-        else:
-            model = "Moving Average"
-            final_prediction = ma_prediction
+        selected_model, model_reason = select_model(cv)
+
+        final_prediction = lr_prediction if selected_model == "Linear Regression" else ma_prediction
+        trend = detect_trend(slope)
+        ci_lower, ci_upper = confidence_interval(clean_sales, final_prediction)
 
         return jsonify({
-            "mean": round(mean, 2),
-            "sd": round(sd, 2),
-            "cv": round(cv, 4),
-            "linear_regression": round(lr_prediction, 2),
-            "moving_average": round(ma_prediction, 2),
-            "selected_model": model,
-            "final_prediction": round(final_prediction, 2)
+            "mean": mean,
+            "sd": sd,
+            "cv": cv,
+            "trend": trend,
+            "slope": slope,
+            "intercept": intercept,
+            "r_squared": r_squared,
+            "linear_regression": lr_prediction,
+            "moving_average": ma_prediction,
+            "selected_model": selected_model,
+            "model_reason": model_reason,
+            "final_prediction": final_prediction,
+            "ci_lower": ci_lower,
+            "ci_upper": ci_upper
         })
 
-    except ValueError:
-        return jsonify({"error": "Please enter only numeric sales values"}), 400
     except Exception as e:
         return jsonify({"error": f"Server error: {str(e)}"}), 500
 

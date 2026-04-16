@@ -3,81 +3,91 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Prediction Dashboard</title>
+  <title>Sales Prediction Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="dashboard-body">
+<body>
 
   <div class="dashboard-wrapper">
+    <nav class="nav-bar">
+      <a href="{{ url_for('home') }}" class="back-link">← Home</a>
+      <span class="nav-title">Sales Prediction Dashboard</span>
+    </nav>
 
-    <div class="nav-bar">
-      <a href="{{ url_for('home') }}" class="back-link">← Back to Home</a>
-      <div class="nav-title">Sales Prediction Dashboard</div>
-    </div>
-
-    <div class="top-header">
+    <header class="top-header">
       <h1>Business Sales Prediction</h1>
-      <p>Enter monthly sales values and get statistical analysis with next month forecast</p>
-    </div>
+      <p>Enter monthly sales values to predict the next value</p>
+    </header>
 
-    <div class="input-section">
+    <section class="input-section">
       <div class="tip-box">
-        Sample Input: 200, 220, 240, 260, 280
+        Example: 220, 240, 260, 280
       </div>
 
       <div class="input-row">
         <input
           type="text"
           id="salesInput"
-          placeholder="Enter sales values separated by comma or space"
+          placeholder="Enter sales values separated by comma"
         />
-        <button onclick="predictSales()">Predict</button>
+        <button onclick="predictSales()" id="predictBtn">
+          <span id="btnText">Predict</span>
+        </button>
+      </div>
+
+      <p class="input-hint" id="validationMsg"></p>
+    </section>
+
+    <div class="dashboard-grid">
+      <div class="card">
+        <h3>Mean</h3>
+        <p id="meanValue">-</p>
+      </div>
+
+      <div class="card">
+        <h3>Standard Deviation</h3>
+        <p id="stdValue">-</p>
+      </div>
+
+      <div class="card">
+        <h3>Coefficient of Variation</h3>
+        <p id="cvValue">-</p>
+      </div>
+
+      <div class="card">
+        <h3>Trend</h3>
+        <p id="trendValue">-</p>
       </div>
     </div>
 
-    <div class="dashboard-grid">
+    <div class="result-box">
+      <h3>Model Selection</h3>
+      <p><strong>Selected Model:</strong> <span id="selectedModel">-</span></p>
+      <p id="modelReason">-</p>
+    </div>
+
+    <div class="prediction-layout">
       <div class="left-panel">
-        <h2>Calculated Results</h2>
-
-        <div class="stats-grid">
-          <div class="stat-card">
-            <h3>Mean</h3>
-            <p id="meanValue">--</p>
-          </div>
-
-          <div class="stat-card">
-            <h3>Standard Deviation</h3>
-            <p id="stdValue">--</p>
-          </div>
-
-          <div class="stat-card">
-            <h3>CV</h3>
-            <p id="cvValue">--</p>
-          </div>
-
-          <div class="stat-card">
-            <h3>Selected Model</h3>
-            <p id="modelValue">--</p>
-          </div>
+        <div class="result-box">
+          <h3>Prediction Details</h3>
+          <p><strong>Linear Regression Prediction:</strong> <span id="lrValue">-</span></p>
+          <p><strong>Moving Average Prediction:</strong> <span id="maValue">-</span></p>
+          <p><strong>Final Prediction:</strong> <span id="finalPrediction">-</span></p>
+          <p><strong>Slope:</strong> <span id="slopeValue">-</span></p>
+          <p><strong>R²:</strong> <span id="r2Value">-</span></p>
+          <p><strong>Confidence Interval:</strong> <span id="ciValue">-</span></p>
         </div>
 
-        <div class="prediction-box" id="predictionDetails">
-          <p><strong>Linear Regression Prediction:</strong> --</p>
-          <p><strong>Moving Average Prediction:</strong> --</p>
-          <p><strong>Final Selected Model:</strong> --</p>
-          <p><strong>Predicted Next Month Sales:</strong> --</p>
-        </div>
       </div>
 
       <div class="right-panel">
-        <h2>Graph Visualization</h2>
-        <div class="chart-card">
+        <div class="chart-box">
           <canvas id="salesChart"></canvas>
         </div>
       </div>
     </div>
-
   </div>
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>

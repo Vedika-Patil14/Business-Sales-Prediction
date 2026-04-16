@@ -4,46 +4,43 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Business Sales Prediction</title>
-
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
-
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-
-<body class="landing-body">
-  <div class="landing-overlay"></div>
+<body>
 
   <div class="landing-container">
-    <div class="landing-badge">Smart Forecasting Dashboard</div>
+    <div class="landing-badge">Smart Forecasting System</div>
 
-    <!-- Title -->
     <h1 class="landing-title">Business Sales Prediction</h1>
 
-    <!-- ❌ Removed subtitle -->
+    <p class="landing-subtitle">
+      Enter monthly sales values and the system will automatically choose
+      the best prediction method using coefficient of variation.
+    </p>
 
-    <div class="landing-features">
-
+    <div class="small-features">
       <div class="feature-card">
-        <h3>Fast Analysis</h3>
-        <p>Instant insights from your monthly sales data.</p>
+        <div class="feature-icon">📊</div>
+        <h3>CV Based Selection</h3>
+        <p>If CV is less than 1, Linear Regression is used. If CV is greater than 1, Moving Average is used.</p>
       </div>
 
       <div class="feature-card">
-        <h3>Smart Model Selection</h3>
-        <p>Uses Linear Regression & Moving Average for prediction.</p>
+        <div class="feature-icon">📈</div>
+        <h3>Prediction Result</h3>
+        <p>The system shows mean, standard deviation, selected method, final prediction, slope and confidence interval.</p>
       </div>
 
       <div class="feature-card">
-        <h3>Graph Visualization</h3>
-        <p>Visualize trends and future predictions clearly.</p>
+        <div class="feature-icon">⚡</div>
+        <h3>Simple and Fast</h3>
+        <p>Enter at least 3 sales values separated by commas and get the prediction instantly.</p>
       </div>
-
     </div>
 
-    <a href="{{ url_for('predict_page') }}" class="start-link">Get Started</a>
+    <a href="{{ url_for('predict_page') }}" class="start-link">Get Started →</a>
   </div>
+
 </body>
 </html>

@@ -1,20 +1,31 @@
 let salesChartInstance = null;
 
-async function predictSales() {
-  const salesInput = document.getElementById("salesInput").value.trim();
+function setValidationMsg(msg) {
+  document.getElementById("validationMsg").textContent = msg;
+}
 
-  if (!salesInput) {
-    alert("Please enter sales values.");
+async function predictSales() {
+  setValidationMsg("");
+
+  const rawInput = document.getElementById("salesInput").value.trim();
+
+  if (!rawInput) {
+    setValidationMsg("Please enter at least 3 sales values.");
     return;
   }
 
-  const salesValues = salesInput
+  const salesValues = rawInput
     .split(/[\s,]+/)
-    .map(value => Number(value))
-    .filter(value => !isNaN(value));
+    .map(v => Number(v))
+    .filter(v => !isNaN(v));
 
   if (salesValues.length < 3) {
-    alert("Please enter at least 3 valid sales values.");
+    setValidationMsg("Please enter at least 3 valid numeric values.");
+    return;
+  }
+
+  if (salesValues.some(v => v < 0)) {
+    setValidationMsg("Sales values cannot be negative.");
     return;
   }
 
@@ -30,73 +41,59 @@ async function predictSales() {
     const result = await response.json();
 
     if (!response.ok) {
-      alert(result.error || "Something went wrong");
+      setValidationMsg(result.error || "Something went wrong.");
       return;
     }
 
     document.getElementById("meanValue").textContent = result.mean;
     document.getElementById("stdValue").textContent = result.sd;
     document.getElementById("cvValue").textContent = result.cv;
-    document.getElementById("modelValue").textContent = result.selected_model;
+    document.getElementById("trendValue").textContent = result.trend;
 
-    document.getElementById("predictionDetails").innerHTML = `
-      <p><strong>Linear Regression Prediction:</strong> ${result.linear_regression}</p>
-      <p><strong>Moving Average Prediction:</strong> ${result.moving_average}</p>
-      <p><strong>Final Selected Model:</strong> ${result.selected_model}</p>
-      <p><strong>Predicted Next Month Sales:</strong> ${result.final_prediction}</p>
-    `;
+    document.getElementById("selectedModel").textContent = result.selected_model;
+    document.getElementById("modelReason").textContent = result.model_reason;
+
+    document.getElementById("lrValue").textContent = result.linear_regression;
+    document.getElementById("maValue").textContent = result.moving_average;
+    document.getElementById("finalPrediction").textContent = result.final_prediction;
+    document.getElementById("slopeValue").textContent = result.slope;
+    document.getElementById("r2Value").textContent = result.r_squared;
+    document.getElementById("ciValue").textContent = `${result.ci_lower} to ${result.ci_upper}`;
 
     drawChart(salesValues, result.final_prediction);
+
   } catch (error) {
-    console.error("Error:", error);
-    alert("Error connecting to server.");
+    setValidationMsg("Could not connect to server. Is Flask running?");
   }
 }
 
-function drawChart(values, prediction) {
-  const canvas = document.getElementById("salesChart");
-  const ctx = canvas.getContext("2d");
-
-  const labels = values.map((_, index) => `Month ${index + 1}`);
-  labels.push("Next Month");
-
-  const actualData = [...values, null];
-  const predictionData = new Array(values.length).fill(null);
-  predictionData.push(prediction);
+function drawChart(actualSales, prediction) {
+  const ctx = document.getElementById("salesChart").getContext("2d");
 
   if (salesChartInstance) {
     salesChartInstance.destroy();
   }
 
+  const labels = actualSales.map((_, i) => `Month ${i + 1}`);
+  labels.push(`Month ${actualSales.length + 1}`);
+
+  const chartData = [...actualSales, prediction];
+
   salesChartInstance = new Chart(ctx, {
     type: "line",
     data: {
       labels: labels,
-      datasets: [
-        {
-          label: "Actual Sales",
-          data: actualData,
-          borderColor: "#38bdf8",
-          backgroundColor: "rgba(56, 189, 248, 0.2)",
-          borderWidth: 3,
-          tension: 0.35,
-          fill: false,
-          pointRadius: 5,
-          pointHoverRadius: 7
-        },
-        {
-          label: "Next Month Prediction",
-          data: predictionData,
-          borderColor: "#f59e0b",
-          backgroundColor: "rgba(245, 158, 11, 0.2)",
-          borderWidth: 3,
-          borderDash: [6, 6],
-          tension: 0.35,
-          fill: false,
-          pointRadius: 6,
-          pointHoverRadius: 8
-        }
-      ]
+      datasets: [{
+        label: "Sales",
+        data: chartData,
+        borderColor: "#38bdf8",
+        backgroundColor: "rgba(56, 189, 248, 0.18)",
+        fill: true,
+        tension: 0.3,
+        borderWidth: 3,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      }]
     },
     options: {
       responsive: true,
@@ -104,42 +101,26 @@ function drawChart(values, prediction) {
       plugins: {
         legend: {
           labels: {
-            color: "#1f2937",
-            font: {
-              size: 13,
-              weight: "bold"
-            }
+            color: "#f1f5f9"
           }
-        },
-        tooltip: {
-          backgroundColor: "#0f172a",
-          titleColor: "#ffffff",
-          bodyColor: "#ffffff"
         }
       },
       scales: {
         x: {
           ticks: {
-            color: "#374151",
-            font: {
-              size: 12
-            }
+            color: "#f1f5f9"
           },
           grid: {
-            color: "rgba(0,0,0,0.06)"
+            color: "rgba(255,255,255,0.08)"
           }
         },
         y: {
           ticks: {
-            color: "#374151",
-            font: {
-              size: 12
-            }
+            color: "#f1f5f9"
           },
           grid: {
-            color: "rgba(0,0,0,0.06)"
-          },
-          beginAtZero: false
+            color: "rgba(255,255,255,0.08)"
+          }
         }
       }
     }
