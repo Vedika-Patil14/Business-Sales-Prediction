@@ -52,34 +52,51 @@ def calculate_linear_regression(data):
     else:
         r_squared = 1 - (ss_res / ss_total)
 
-    return round(slope, 2), round(intercept, 2), round(prediction, 2), round(r_squared, 4)
+    return slope, intercept, prediction, r_squared
 
 
 def moving_average(data, k=3):
     k = min(k, len(data))
-    return round(sum(data[-k:]) / k, 2)
+    return sum(data[-k:]) / k
 
 
-def detect_trend(slope):
-    if slope > 0:
+def detect_trend(slope, threshold=0.01):
+    if slope > threshold:
         return "Increasing"
-    elif slope < 0:
+    elif slope < -threshold:
         return "Decreasing"
     return "Stable"
 
 
-def select_model(cv):
-    if cv > 1:
-        return "Moving Average", "CV > 1, so Moving Average is selected."
+def select_model(slope, r_squared, cv):
+    """
+    Improved decision logic:
+    1. If trend is clear and R² is good -> Linear Regression
+    2. If fluctuation is high -> Moving Average
+    3. Otherwise -> Moving Average
+    """
+    if abs(slope) > 0.01 and r_squared >= 0.7:
+        return (
+            "Linear Regression",
+            "Clear trend detected and R² is high, so Linear Regression is selected."
+        )
+    elif cv > 0.1:
+        return (
+            "Moving Average",
+            "Data is fluctuating (CV > 0.1) and trend is not reliable, so Moving Average is selected."
+        )
     else:
-        return "Linear Regression", "CV < 1, so Linear Regression is selected."
+        return (
+            "Moving Average",
+            "No strong trend detected, so Moving Average is selected."
+        )
 
 
 def confidence_interval(data, prediction, z=1.645):
     mean = calculate_mean(data)
     sd = calculate_sd(data, mean)
     margin = z * sd
-    return round(prediction - margin, 2), round(prediction + margin, 2)
+    return prediction - margin, prediction + margin
 
 
 @app.route("/")
@@ -96,6 +113,7 @@ def predict_page():
 def predict():
     try:
         payload = request.get_json()
+
         if not payload or "sales" not in payload:
             return jsonify({"error": "Sales data is required."}), 400
 
@@ -114,37 +132,40 @@ def predict():
                 if num < 0:
                     return jsonify({"error": "Sales values cannot be negative."}), 400
                 clean_sales.append(num)
-            except:
+            except ValueError:
                 return jsonify({"error": "All sales values must be numeric."}), 400
 
-        mean = round(calculate_mean(clean_sales), 2)
-        sd = round(calculate_sd(clean_sales, mean), 2)
-        cv = round(calculate_cv(clean_sales), 4)
+        mean_raw = calculate_mean(clean_sales)
+        sd_raw = calculate_sd(clean_sales, mean_raw)
+        cv_raw = calculate_cv(clean_sales)
 
-        slope, intercept, lr_prediction, r_squared = calculate_linear_regression(clean_sales)
-        ma_prediction = moving_average(clean_sales, 3)
+        slope_raw, intercept_raw, lr_prediction_raw, r_squared_raw = calculate_linear_regression(clean_sales)
+        ma_prediction_raw = moving_average(clean_sales, 3)
 
-        selected_model, model_reason = select_model(cv)
+        selected_model, model_reason = select_model(slope_raw, r_squared_raw, cv_raw)
 
-        final_prediction = lr_prediction if selected_model == "Linear Regression" else ma_prediction
-        trend = detect_trend(slope)
-        ci_lower, ci_upper = confidence_interval(clean_sales, final_prediction)
+        final_prediction_raw = (
+            lr_prediction_raw if selected_model == "Linear Regression" else ma_prediction_raw
+        )
+
+        trend = detect_trend(slope_raw)
+        ci_lower_raw, ci_upper_raw = confidence_interval(clean_sales, final_prediction_raw)
 
         return jsonify({
-            "mean": mean,
-            "sd": sd,
-            "cv": cv,
+            "mean": round(mean_raw, 2),
+            "sd": round(sd_raw, 2),
+            "cv": round(cv_raw, 4),
             "trend": trend,
-            "slope": slope,
-            "intercept": intercept,
-            "r_squared": r_squared,
-            "linear_regression": lr_prediction,
-            "moving_average": ma_prediction,
+            "slope": round(slope_raw, 2),
+            "intercept": round(intercept_raw, 2),
+            "r_squared": round(r_squared_raw, 4),
+            "linear_regression": round(lr_prediction_raw, 2),
+            "moving_average": round(ma_prediction_raw, 2),
             "selected_model": selected_model,
             "model_reason": model_reason,
-            "final_prediction": final_prediction,
-            "ci_lower": ci_lower,
-            "ci_upper": ci_upper
+            "final_prediction": round(final_prediction_raw, 2),
+            "ci_lower": round(ci_lower_raw, 2),
+            "ci_upper": round(ci_upper_raw, 2)
         })
 
     except Exception as e:
